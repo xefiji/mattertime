@@ -10,7 +10,6 @@ import (
 )
 
 type Ret struct {
-	StatusCode int `json:"statuscode,omitempty"`
 	Message string `json:"message,omitempty"`
 	Datas TimeSpents `json:"datas"`
 }
@@ -24,7 +23,7 @@ func GetTimeToday(w http.ResponseWriter, r *http.Request) {
  	//prepare for return
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")	
 	w.WriteHeader(http.StatusOK)
-	e := Ret{http.StatusOK, "", t}
+	e := Ret{"", t}
 	if err := json.NewEncoder(w).Encode(e); err != nil{
 		panic(err)
 	}
@@ -39,7 +38,7 @@ func GetTimeDay(w http.ResponseWriter, r *http.Request) {
 	d, err := time.Parse(time.RFC3339,dateString);
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		e := Ret{http.StatusBadRequest, err.Error(), TimeSpents{}}
+		e := Ret{err.Error(), TimeSpents{}}
 		if err := json.NewEncoder(w).Encode(e); err != nil{
 			panic(err)
 		}
@@ -48,7 +47,7 @@ func GetTimeDay(w http.ResponseWriter, r *http.Request) {
 
 	_, t := RepoFindTimeSpent(d.Format("2006-01-02"))
 	w.WriteHeader(http.StatusOK)
-	e := Ret{http.StatusOK, "", t}
+	e := Ret{"", t}
 	if err := json.NewEncoder(w).Encode(e); err != nil{
 		panic(err)
 	}
@@ -70,7 +69,7 @@ func RecordTime(w http.ResponseWriter, r *http.Request) {
 	if err := json.Unmarshal(body, &timeSpent); err != nil{				
 		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		w.WriteHeader(422) //why ??
-		e := Ret{422, err.Error(), TimeSpents{}}
+		e := Ret{err.Error(), TimeSpents{}}
 		if err := json.NewEncoder(w).Encode(e); err != nil{
 			panic(err)
 		}
@@ -81,7 +80,7 @@ func RecordTime(w http.ResponseWriter, r *http.Request) {
 	errorInsert, t := RepoCreateTimeSpent(timeSpent)
 	if errorInsert != nil{
 		w.WriteHeader(422) //why ??
-		e := Ret{422, errorInsert.Error(), TimeSpents{}}
+		e := Ret{errorInsert.Error(), TimeSpents{}}
 		if err := json.NewEncoder(w).Encode(e); err != nil{
 			panic(err)
 		}
@@ -90,7 +89,7 @@ func RecordTime(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	w.WriteHeader(http.StatusCreated)
-	e := Ret{http.StatusCreated, "Spent time created", append(TimeSpents{}, t)}
+	e := Ret{"Spent time created", append(TimeSpents{}, t)}
 	if err := json.NewEncoder(w).Encode(e); err != nil{
 		panic(err)
 	}
@@ -106,7 +105,7 @@ func DeleteTime(w http.ResponseWriter, r *http.Request) {
 
 	if errorDelete != nil{
 		w.WriteHeader(422) //why ??
-		e := Ret{422, errorDelete.Error(), TimeSpents{}}
+		e := Ret{errorDelete.Error(), TimeSpents{}}
 		if err := json.NewEncoder(w).Encode(e); err != nil{
 			panic(err)
 		}
@@ -114,7 +113,7 @@ func DeleteTime(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	e := Ret{http.StatusOK, id + " has been deleted", TimeSpents{}}
+	e := Ret{id + " has been deleted", TimeSpents{}}
 	if err := json.NewEncoder(w).Encode(e); err != nil{
 		panic(err)
 	}

@@ -14,6 +14,7 @@ type Route struct {
 type Routes []Route
 
 var routes = Routes{
+    // API GLOBAL ROUTES
     Route{
         "GetTimeToday",
         "GET",
@@ -37,5 +38,12 @@ var routes = Routes{
         "DELETE",
         "/time/{id}",
         DeleteTime,
+    },
+    // MATTERMOST ROUTE
+    Route{
+        "MattermostMain",
+        "POST",
+        "/mattermost_time",
+        MattermostMain,
     },
 }

@@ -31,6 +31,9 @@ func main(){
 }
 
 func (a *App) Initialize(user, password, dbname string, collectionname string) {
+
+	// Mattermost TOKEN: dnqccbjxiprhdxthe81y9i5u7h
+
 	a.Database = dbname
 	a.Collection = collectionname	
 }
