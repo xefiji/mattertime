@@ -17,7 +17,6 @@ type App struct {
 
 var a App
 
-// MAIN.GO
 func main(){
 	fmt.Printf("Running...\n")
     a.Initialize(
