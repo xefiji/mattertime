@@ -53,9 +53,10 @@ func GetTimeDay(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+//ioutil.ReadAll() seems to be best to parse Content-Type: application/json
 func RecordTime(w http.ResponseWriter, r *http.Request) {	
 	
-	//some checks on request
+	//some checks on request	
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
 	if err != nil{
 		panic(err)

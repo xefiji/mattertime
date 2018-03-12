@@ -4,6 +4,7 @@ import (
 "net/http"
 "fmt"
 "net/http/httputil"
+"time"
 )
 
 type Command struct {
@@ -11,7 +12,7 @@ type Command struct {
 	Duration string
 	Date string
 	User string
-	CreatedAt string
+	CreatedAt time.Time
 }
 
 type MattermostRet struct {
@@ -19,7 +20,7 @@ type MattermostRet struct {
 	Text string `json:"text"`
 }
 
-func MattermostMain(w http.ResponseWriter, r *http.Request) {		
+func MattermostMain(w http.ResponseWriter, r *http.Request) {
 	
 	requestDump, err := httputil.DumpRequest(r, true)
 	if err != nil {
@@ -27,20 +28,42 @@ func MattermostMain(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println(string(requestDump))
 
+	fmt.Printf("\n\n--------------------------\n\n")	
 
-	fmt.Printf("\n\n--------------------------\n\n")
+	ParseCommand(r)
+}
 
+//r.ParseForm() seems to be best to parse Content-Type: application/x-www-form-urlencoded
+func ParseCommand(r *http.Request) Command{
 	if err := r.ParseForm(); err != nil {
-		msg := fmt.Sprintf("Unable to parse form :: %v", err.Error())
-		fmt.Printf(msg)
+		panic(err)
 	}
 
-	c := Command{"nil", "nil", "date concernée", r.PostForm["user_name"][0], "NOW"}
-	final := ParseAction(r.PostForm["text"][0], c)
-	fmt.Println(final)
+	requestDatas := r.PostForm
+
+	c := Command{}
+	c.User = requestDatas.Get("user_name")
+	c.CreatedAt = time.Now()
+
+	fmt.Printf("%+v\n", c)
+
+	return c
 }
 
-func ParseAction(datas string, command Command) Command{
-	command.Action = "Add"
-	return command
+func ParseAction(s string) string{
+	return s
 }
+
+func ParseDuration(s string) string{
+	return s
+}
+
+func ParseTask(s string) string{
+	return s
+}
+
+func ParseDate(s string) string{
+	return s
+}
+
+
