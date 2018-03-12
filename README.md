@@ -46,23 +46,35 @@ Just a small plugin to
 
 ## Which mattermost commands should be plugged ?
 
-- /spent ls
-	all times recorded for today
+- `/mtm ls [yyyy-mm-dd]`
+	all times recorded for today or specific day
 
-- /spent ls [date]
-	all times recorded for specific day
-
-- /spent ls [task]
-	all times recorded for specific task
-
-- /spent tasks
+- `/mtm tasks`
 	all tasks recorded
 
-- /spent add [datas]
+- `/mtm add <duration> <task> [yyyy-mm-dd]`
 	add new time
 
-- /spent rm [ID]
+- `/mtm rm <ID>`
 	remove specific time spent
+
+- `/mtm clear`
+	clear all times of the day
+
+- `/mtm stats`
+	sends some stats
+
+- `/mtm help`
+	display table with commands, arguments, payloads and comments
+
+- `/mtm start <task>`
+	start timer on this task
+
+- `/mtm stop`
+	stop timer on all tasks
+
+- `/mtm poke <message> <time>`
+	create a reminder that will pop in the channel with [message] in [time] minutes/hours
 
 ## Useful
 
