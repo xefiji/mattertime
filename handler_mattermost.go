@@ -69,6 +69,7 @@ func ParseRequestToCommand(requestDatas url.Values) (error, Command) {
 		return errors.New("Action vide ou requête invalide : " + requestDatas.Get("text")), c
 	}
 
+	//clean space from each captured string
 	for i, f := range found {
 		found[i] = strings.Trim(f, " ")
 	}
@@ -78,6 +79,7 @@ func ParseRequestToCommand(requestDatas url.Values) (error, Command) {
 	// 	fmt.Printf("%v => %v\n", index, element)
 	// }
 
+	//fetch
 	commandVars := map[string]int{}
 	for k, v := range re.SubexpNames(){
 		commandVars[v] = k
