@@ -27,21 +27,11 @@ type MattermostRet struct {
 	Text string `json:"text"`
 }
 
+//r.ParseForm() seems to be best to parse Content-Type: application/x-www-form-urlencoded
 func MattermostMain(w http.ResponseWriter, r *http.Request) {
 	
-	requestDump, err := httputil.DumpRequest(r, true)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(string(requestDump))
+	//RequestDebug(r)
 
-	fmt.Printf("\n\n--------------------------\n\n")	
-
-	ParseCommand(r)
-}
-
-//r.ParseForm() seems to be best to parse Content-Type: application/x-www-form-urlencoded
-func ParseCommand(r *http.Request) Command{
 	if err := r.ParseForm(); err != nil {
 		panic(err)
 	}
@@ -52,7 +42,7 @@ func ParseCommand(r *http.Request) Command{
 		fmt.Println(err)
 	}
 
-	return commande
+	fmt.Printf("Commande:	%+v\n", commande)
 }
 
 //all tests on strings are: https://regex101.com/r/QOcVZ7/4
@@ -91,48 +81,42 @@ func ParseRequestToCommand(requestDatas url.Values) (error, Command) {
 
 	c.User = requestDatas.Get("user_name")
 	c.CreatedAt = time.Now()
-	c.Action = strings.ToLower(found[1])
+	c.Action = strings.ToLower(found[commandVars["task"]])
 	switch c.Action {
 	case "add":
-		c.Task = found[commandVars["task"]]
-		c.Duration = found[commandVars["duration"]]		
-		c.Date = found[commandVars["date"]]
+		c.Task 		= found[commandVars["task"]]
+		c.Duration 	= found[commandVars["duration"]]		
+		c.Date 		= found[commandVars["date"]]
 	case "ls":
-		c.Date = found[commandVars["date"]]
+		c.Date 		= found[commandVars["date"]]
 	case "rm":
-		c.Id = found[commandVars["id"]]
+		c.Id 		= found[commandVars["id"]]
 	case "start":
-		c.Task = found[commandVars["task"]]
+		c.Task 		= found[commandVars["task"]]
 	case "poke":
-		c.Message = ""
-		c.Duration = ""
+		c.Message 	= ""
+		c.Duration 	= ""
 	case "tasks", "clear", "stats", "help", "stop":
 		break
-	}
-
-	// fmt.Printf("Commande:	%+v\n", c)
+	}	
 
 	return nil, c
 }
 
-func ParseAction(s string) string{
-	pattern := `(?i)(^\s*[a-z]+)`
-	var re = regexp.MustCompile(pattern)
+func Convert(c Command) TimeSpent {
+	t := TimeSpent{}
 
-	found := re.FindString(s)
-	return strings.Trim(found, " ")
+	return t
 }
 
-func ParseDuration(s string) string{
-	return s
+//should be moved somewhere more global
+func RequestDebug(r *http.Request) {
+	fmt.Printf("\n\n--------------------------\n\n")	
+	requestDump, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(string(requestDump))
+	fmt.Printf("\n\n--------------------------\n\n")	
 }
-
-func ParseTask(s string) string{
-	return s
-}
-
-func ParseDate(s string) string{
-	return s
-}
-
 
