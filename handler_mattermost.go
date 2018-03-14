@@ -6,9 +6,10 @@ import (
 "net/url"
 "fmt"
 "net/http/httputil"
-"time"
 "regexp"
 "strings"
+"strconv"
+"time"
 )
 
 type Command struct {
@@ -18,8 +19,7 @@ type Command struct {
 	Date string
 	Id string
 	Message string
-	User string
-	CreatedAt time.Time
+	User string	
 }
 
 type MattermostRet struct {
@@ -30,19 +30,33 @@ type MattermostRet struct {
 //r.ParseForm() seems to be best to parse Content-Type: application/x-www-form-urlencoded
 func MattermostMain(w http.ResponseWriter, r *http.Request) {
 	
-	//RequestDebug(r)
+	// RequestDebug(r)
 
 	if err := r.ParseForm(); err != nil {
 		panic(err)
 	}
 
 	err, commande := ParseRequestToCommand(r.PostForm)
-
 	if err != nil{
 		fmt.Println(err)
 	}
 
-	fmt.Printf("Commande:	%+v\n", commande)
+	timeSpent := Convert(commande)
+	// fmt.Printf("Commande:	%+v\n", commande)
+	// fmt.Printf("TimeSpent:	%+v\n", timeSpent)
+
+	err, created := CreateTimeSpent(timeSpent)
+	if err != nil {
+		panic(err)
+	}
+	
+	fmt.Printf("OK:	%+v\n", created)
+	//find todays spent time
+	today := time.Now().Format("2006-01-02")
+	_, t := FindTimeSpent(today)
+
+	fmt.Printf("OK:	%+v\n", t)
+
 }
 
 //all tests on strings are: https://regex101.com/r/QOcVZ7/4
@@ -51,7 +65,7 @@ func ParseRequestToCommand(requestDatas url.Values) (error, Command) {
 	c := Command{}
 
 	//regex powaaa
-	pattern := `(?im)(?P<action>^\s*[a-z]+\t*)(?:(?P<id>\s+[\d\w]{24})|(?P<date>\s+[\d]{4}-[\d]{2}-[\d]{2})?|(?P<duration>\s+[0-9]{1,2}h[0-9]{1,2}m)?|(?P<task>\s+"[a-z0-9]+"))*(?:(?P<task2>\s+"[a-z0-9]+")(?P<date2>\s+[\d]{4}-[\d]{2}-[\d]{2}))?`
+	pattern := `(?im)(?P<action>^\s*[a-z]+\t*)(?:(?P<id>\s+[\d\w]{24})|(?P<date>\s+[\d]{4}-[\d]{2}-[\d]{2})?|(?P<duration>\s+[0-9]{1,2}h[0-9]{1,2}m)?|(?P<task>\s+"[a-z0-9\s]+"))*(?:(?P<task2>\s+"[a-z0-9\s]+")(?P<date2>\s+[\d]{4}-[\d]{2}-[\d]{2}))?`
 	var re = regexp.MustCompile(pattern)
 	found := re.FindStringSubmatch(requestDatas.Get("text"))
 
@@ -80,22 +94,21 @@ func ParseRequestToCommand(requestDatas url.Values) (error, Command) {
 	// fmt.Printf("CommandVars:	%v\n", commandVars)
 
 	c.User = requestDatas.Get("user_name")
-	c.CreatedAt = time.Now()
-	c.Action = strings.ToLower(found[commandVars["task"]])
+	c.Action = strings.ToLower(found[commandVars["action"]])
 	switch c.Action {
 	case "add":
-		c.Task 		= found[commandVars["task"]]
-		c.Duration 	= found[commandVars["duration"]]		
-		c.Date 		= found[commandVars["date"]]
+		c.Task = found[commandVars["task"]]
+		c.Duration = found[commandVars["duration"]]		
+		c.Date = found[commandVars["date"]]
 	case "ls":
-		c.Date 		= found[commandVars["date"]]
+		c.Date = found[commandVars["date"]]
 	case "rm":
-		c.Id 		= found[commandVars["id"]]
+		c.Id = found[commandVars["id"]]
 	case "start":
-		c.Task 		= found[commandVars["task"]]
+		c.Task = found[commandVars["task"]]
 	case "poke":
-		c.Message 	= ""
-		c.Duration 	= ""
+		c.Message = ""
+		c.Duration = ""
 	case "tasks", "clear", "stats", "help", "stop":
 		break
 	}	
@@ -104,9 +117,45 @@ func ParseRequestToCommand(requestDatas url.Values) (error, Command) {
 }
 
 func Convert(c Command) TimeSpent {
-	t := TimeSpent{}
+
+	t := TimeSpent{
+		Date: c.Date,
+		Spent: ConvertDuration(c.Duration),
+		Task: strings.Replace(c.Task, "\"", "", -1),
+		User: c.User,
+	}
 
 	return t
+}
+
+func ConvertDuration(s string) float64 {
+	
+	var re = regexp.MustCompile(`(?i)(?P<hour>[0-9]{1,2})h(?P<minute>[0-9]{1,2})m`)
+	found := re.FindStringSubmatch(s)
+
+	//clean leading zeros
+	for i, f := range found {
+		if i == 0 {
+			continue
+		}
+		
+		if f[:1] == "0"{
+			found[i] = f[1:]
+		}
+	}
+
+	//set parts
+	parts := map[string]int{}
+	for k, v := range re.SubexpNames(){
+		parts[v] = k
+	}
+
+	hour, _ := strconv.ParseFloat(found[parts["hour"]], 64)
+	minute, _ := strconv.ParseFloat(found[parts["minute"]], 64)
+	var hourcents float64
+	hourcents = ((hour * 60) + minute) / 60
+	
+	return hourcents
 }
 
 //should be moved somewhere more global

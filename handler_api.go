@@ -18,7 +18,7 @@ func GetTimeToday(w http.ResponseWriter, r *http.Request) {
 	
 	//find todays spent time
 	today := time.Now().Format("2006-01-02")
-	_, t := RepoFindTimeSpent(today)
+	_, t := FindTimeSpent(today)
 
  	//prepare for return
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")	
@@ -45,7 +45,7 @@ func GetTimeDay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, t := RepoFindTimeSpent(d.Format("2006-01-02"))
+	_, t := FindTimeSpent(d.Format("2006-01-02"))
 	w.WriteHeader(http.StatusOK)
 	e := Ret{"", t}
 	if err := json.NewEncoder(w).Encode(e); err != nil{
@@ -78,7 +78,7 @@ func RecordTime(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	//Creation
-	errorInsert, t := RepoCreateTimeSpent(timeSpent)
+	errorInsert, t := CreateTimeSpent(timeSpent)
 	if errorInsert != nil{
 		w.WriteHeader(422) //why ??
 		e := Ret{errorInsert.Error(), TimeSpents{}}
@@ -101,7 +101,7 @@ func DeleteTime(w http.ResponseWriter, r *http.Request) {
 	id := vars["id"]
 	
 	//Delete
-	errorDelete, _ := RepoDestroyTimeSpent(id)
+	errorDelete, _ := DestroyTimeSpent(id)
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 
 	if errorDelete != nil{

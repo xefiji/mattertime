@@ -2,12 +2,13 @@ package main
 
 import (
     "gopkg.in/mgo.v2/bson"
+    "time"
 )
 
 var timeSpents TimeSpents
 
 
-func RepoFindTimeSpent(date string) (error, TimeSpents) {
+func FindTimeSpent(date string) (error, TimeSpents) {
     err := a.Session.DB(a.Database).C(a.Collection).Find(bson.M{"date": date}).All(&timeSpents)
 
     if timeSpents == nil{
@@ -17,14 +18,18 @@ func RepoFindTimeSpent(date string) (error, TimeSpents) {
     return err, timeSpents
 }
 
-func RepoCreateTimeSpent(t TimeSpent) (error, TimeSpent) {
+func CreateTimeSpent(t TimeSpent) (error, TimeSpent) {
     t.ID = bson.NewObjectId()
+    t.CreatedAt = time.Now()
+    if len(t.Date) == 0 {
+        t.Date = time.Now().Format("2006-01-02")
+    }
     err := a.Session.DB(a.Database).C(a.Collection).Insert(t)
 
     return err, t
 }
 
-func RepoDestroyTimeSpent(id string) (error, bool) {
+func DestroyTimeSpent(id string) (error, bool) {
     err := a.Session.DB(a.Database).C(a.Collection).Remove(bson.M{"_id": bson.ObjectIdHex(id)})
 
     return err, true
