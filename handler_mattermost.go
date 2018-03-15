@@ -13,6 +13,12 @@ import (
 "time"
 )
 
+/*
+	TODO: 
+	- Regex: be less strict in task names: allow special chars
+	- Regex: allow no minutes or no hours
+*/
+
 type Command struct {
 	Action string
 	Duration string
@@ -48,15 +54,19 @@ func MattermostMain(w http.ResponseWriter, r *http.Request) {
 
 	var response MattermostRet
 	switch commande.Action{
-		
+
 	case "add":
 		response = Add(commande)
 
 	case "ls":
 		response = List(commande)
-	}
 
-	
+	case "rm":
+		response = Remove(commande)
+
+	case "clear":
+		response = Clear(commande)
+	}
 
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")	
 	w.WriteHeader(http.StatusOK)
@@ -64,6 +74,27 @@ func MattermostMain(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
+}
+
+func Clear(commande Command) MattermostRet {
+	date := time.Now().Format("2006-01-02")
+	err := ClearUserTimeSpentByDay(date, commande.User)
+	if err != nil {
+		panic(err)
+	}
+
+	response := FindTimeSpentFormatted(commande.User)
+	return response
+}
+
+func Remove(commande Command) MattermostRet {
+	err, _ := DestroyTimeSpent(commande.Id)
+	if err != nil {
+		panic(err)
+	}
+
+	response := FindTimeSpentFormatted(commande.User)
+	return response
 }
 
 func List(commande Command) MattermostRet {
@@ -86,14 +117,15 @@ func Add(commande Command) MattermostRet {
 func FindTimeSpentFormatted(user string) MattermostRet{
 	
 	date := time.Now().Format("2006-01-02") // today default
-	_, t := FindTimeSpent(date) //todo add current user
+	_, t := FindTimeSpentByDateAndUser(date, user)
 
 	var text string
 	text += "#### Temps saisis par " + user + " pour la journée du " + date + "\n"
-	text += "|ID|Date|Temps|Task|Created|\n"
+	text += "|ID|Date|Temps|Tâche|Crée le|\n"
 	text += "|:-|:-|:-|:-|:-|:-|\n"
+
 	for _, t := range t {
-		created_at := t.CreatedAt.Format("02-01-2006 15:04")
+		created_at := t.CreatedAt.Format("02-01-2006 à 15:04")
 		text += "|" + t.ID.Hex() + "|" + t.Date + "|" + strconv.FormatFloat(t.Spent, 'E', 2, 64) + "|" + t.Task + "|" + created_at + "|\n"
 	}
 
