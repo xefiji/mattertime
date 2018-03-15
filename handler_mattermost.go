@@ -2,6 +2,7 @@ package main
 
 import (
 "net/http"
+"encoding/json"
 "errors"
 "net/url"
 "fmt"
@@ -41,21 +42,64 @@ func MattermostMain(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 	}
 
-	timeSpent := Convert(commande)
+	
 	// fmt.Printf("Commande:	%+v\n", commande)
 	// fmt.Printf("TimeSpent:	%+v\n", timeSpent)
 
-	err, created := CreateTimeSpent(timeSpent)
+	var response MattermostRet
+	switch commande.Action{
+		
+	case "add":
+		response = Add(commande)
+
+	case "ls":
+		response = List(commande)
+	}
+
+	
+
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")	
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(response); err != nil{
+		panic(err)
+	}
+
+}
+
+func List(commande Command) MattermostRet {
+	response := FindTimeSpentFormatted(commande.User)
+	return response
+}
+
+func Add(commande Command) MattermostRet {
+	timeSpent := Convert(commande)
+
+	err, _ := CreateTimeSpent(timeSpent)
 	if err != nil {
 		panic(err)
 	}
 	
-	fmt.Printf("OK:	%+v\n", created)
-	//find todays spent time
-	today := time.Now().Format("2006-01-02")
-	_, t := FindTimeSpent(today)
+	response := FindTimeSpentFormatted(commande.User)
+	return response
+}
 
-	fmt.Printf("OK:	%+v\n", t)
+func FindTimeSpentFormatted(user string) MattermostRet{
+	
+	date := time.Now().Format("2006-01-02") // today default
+	_, t := FindTimeSpent(date) //todo add current user
+
+	var text string
+	text += "#### Temps saisis par " + user + " pour la journée du " + date + "\n"
+	text += "|ID|Date|Temps|Task|Created|\n"
+	text += "|:-|:-|:-|:-|:-|:-|\n"
+	for _, t := range t {
+		created_at := t.CreatedAt.Format("02-01-2006 15:04")
+		text += "|" + t.ID.Hex() + "|" + t.Date + "|" + strconv.FormatFloat(t.Spent, 'E', 2, 64) + "|" + t.Task + "|" + created_at + "|\n"
+	}
+
+	response := MattermostRet{ ResponseType: "in_channel", Text: text }
+
+	return response
 
 }
 

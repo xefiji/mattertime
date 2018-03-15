@@ -20,7 +20,6 @@ func GetTimeToday(w http.ResponseWriter, r *http.Request) {
 	today := time.Now().Format("2006-01-02")
 	_, t := FindTimeSpent(today)
 
- 	//prepare for return
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")	
 	w.WriteHeader(http.StatusOK)
 	e := Ret{"", t}
