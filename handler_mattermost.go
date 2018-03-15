@@ -6,18 +6,10 @@ import (
 "errors"
 "net/url"
 "fmt"
-"net/http/httputil"
 "regexp"
-"strings"
-"strconv"
 "time"
+"strings"
 )
-
-/*
-	TODO: 
-	- Regex: be less strict in task names: allow special chars
-	- Regex: allow no minutes or no hours
-*/
 
 type Command struct {
 	Action string
@@ -66,6 +58,9 @@ func MattermostMain(w http.ResponseWriter, r *http.Request) {
 
 	case "clear":
 		response = Clear(commande)
+
+	case "help":
+		response = Help()
 	}
 
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")	
@@ -76,6 +71,12 @@ func MattermostMain(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func Help() MattermostRet{
+	response := MattermostRet{ ResponseType: "in_channel", Text: GetHelp() }
+
+	return response
+}
+
 func Clear(commande Command) MattermostRet {
 	date := time.Now().Format("2006-01-02")
 	err := ClearUserTimeSpentByDay(date, commande.User)
@@ -83,7 +84,7 @@ func Clear(commande Command) MattermostRet {
 		panic(err)
 	}
 
-	response := FindTimeSpentFormatted(commande.User)
+	response := FindTimeSpentFormatted(GetTodayDate(), commande.User)
 	return response
 }
 
@@ -93,12 +94,18 @@ func Remove(commande Command) MattermostRet {
 		panic(err)
 	}
 
-	response := FindTimeSpentFormatted(commande.User)
+	response := FindTimeSpentFormatted(GetTodayDate(), commande.User)
 	return response
 }
 
 func List(commande Command) MattermostRet {
-	response := FindTimeSpentFormatted(commande.User)
+	var date string
+	if commande.Date == "" {
+		date = GetTodayDate()
+	}else{
+		date = commande.Date
+	}
+	response := FindTimeSpentFormatted(date, commande.User)
 	return response
 }
 
@@ -110,24 +117,35 @@ func Add(commande Command) MattermostRet {
 		panic(err)
 	}
 	
-	response := FindTimeSpentFormatted(commande.User)
+	var date string
+	if commande.Date == ""{
+		date = GetTodayDate()
+	}else{
+		date = commande.Date
+	}
+
+	response := FindTimeSpentFormatted(date, commande.User)
 	return response
 }
 
-func FindTimeSpentFormatted(user string) MattermostRet{
+func FindTimeSpentFormatted(date string, user string) MattermostRet{
 	
-	date := time.Now().Format("2006-01-02") // today default
 	_, t := FindTimeSpentByDateAndUser(date, user)
 
 	var text string
 	text += "#### Temps saisis par " + user + " pour la journée du " + date + "\n"
-	text += "|ID|Date|Temps|Tâche|Crée le|\n"
-	text += "|:-|:-|:-|:-|:-|:-|\n"
+	text += "|Tâche|Date|Temps|Créée le|ID|\n"
+	text += "|:-|:-|:-|:-|:-|\n"
 
+	var total float64
 	for _, t := range t {
 		created_at := t.CreatedAt.Format("02-01-2006 à 15:04")
-		text += "|" + t.ID.Hex() + "|" + t.Date + "|" + strconv.FormatFloat(t.Spent, 'E', 2, 64) + "|" + t.Task + "|" + created_at + "|\n"
+		id := t.ID.Hex()
+		total += t.Spent
+		spent := ConvertFloat(t.Spent)
+		text += "|**" + t.Task + "**|" + t.Date + "|" + spent + "|" + created_at + "|*" + id + "*|\n"
 	}
+	text += "|**TOTAL**||**" + ConvertFloat(total) + "**||||\n"
 
 	response := MattermostRet{ ResponseType: "in_channel", Text: text }
 
@@ -141,7 +159,7 @@ func ParseRequestToCommand(requestDatas url.Values) (error, Command) {
 	c := Command{}
 
 	//regex powaaa
-	pattern := `(?im)(?P<action>^\s*[a-z]+\t*)(?:(?P<id>\s+[\d\w]{24})|(?P<date>\s+[\d]{4}-[\d]{2}-[\d]{2})?|(?P<duration>\s+[0-9]{1,2}h[0-9]{1,2}m)?|(?P<task>\s+"[a-z0-9\s]+"))*(?:(?P<task2>\s+"[a-z0-9\s]+")(?P<date2>\s+[\d]{4}-[\d]{2}-[\d]{2}))?`
+	pattern := `(?im)(?P<action>^\s*[a-z]+\t*)(?:(?P<id>\s+[\d\w]{24})|(?P<date>\s+[\d]{4}-[\d]{2}-[\d]{2})?|(?P<duration>\s+[0-9]{1,2}h[0-9]{1,2}m)?|(?P<task>\s+".+"))*(?:(?P<task2>\s+".+")(?P<date2>\s+[\d]{4}-[\d]{2}-[\d]{2}))?`
 	var re = regexp.MustCompile(pattern)
 	found := re.FindStringSubmatch(requestDatas.Get("text"))
 
@@ -202,46 +220,5 @@ func Convert(c Command) TimeSpent {
 	}
 
 	return t
-}
-
-func ConvertDuration(s string) float64 {
-	
-	var re = regexp.MustCompile(`(?i)(?P<hour>[0-9]{1,2})h(?P<minute>[0-9]{1,2})m`)
-	found := re.FindStringSubmatch(s)
-
-	//clean leading zeros
-	for i, f := range found {
-		if i == 0 {
-			continue
-		}
-		
-		if f[:1] == "0"{
-			found[i] = f[1:]
-		}
-	}
-
-	//set parts
-	parts := map[string]int{}
-	for k, v := range re.SubexpNames(){
-		parts[v] = k
-	}
-
-	hour, _ := strconv.ParseFloat(found[parts["hour"]], 64)
-	minute, _ := strconv.ParseFloat(found[parts["minute"]], 64)
-	var hourcents float64
-	hourcents = ((hour * 60) + minute) / 60
-	
-	return hourcents
-}
-
-//should be moved somewhere more global
-func RequestDebug(r *http.Request) {
-	fmt.Printf("\n\n--------------------------\n\n")	
-	requestDump, err := httputil.DumpRequest(r, true)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(string(requestDump))
-	fmt.Printf("\n\n--------------------------\n\n")	
 }
 

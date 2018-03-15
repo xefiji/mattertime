@@ -8,6 +8,12 @@ import (
 mgo "gopkg.in/mgo.v2"
 )
 
+/*
+    TODO:
+    - export and set mattermost token
+    - export mongo config
+*/
+
 type App struct {
     Session *mgo.Session
     Server string

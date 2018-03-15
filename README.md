@@ -44,13 +44,10 @@ Just a small plugin to
 - Db instance should be pass with dependency injection
 - make a "commit" system to record and validate spent time ?
 
-## Which mattermost commands should be plugged ?
+## Plugged commands: 
 
 - `/mtm ls [yyyy-mm-dd]`
 	all times recorded for today or specific day
-
-- `/mtm tasks`
-	all tasks recorded
 
 - `/mtm add <duration> <task> [yyyy-mm-dd]`
 	add new time
@@ -61,11 +58,16 @@ Just a small plugin to
 - `/mtm clear`
 	clear all times of the day
 
-- `/mtm stats`
-	sends some stats
-
 - `/mtm help`
 	display table with commands, arguments, payloads and comments
+
+## Commands to plug: 
+
+- `/mtm tasks`
+	all tasks recorded
+
+- `/mtm stats`
+	sends some stats
 
 - `/mtm start <task>`
 	start timer on this task
