@@ -26,8 +26,8 @@ Just a small plugin to
 
 ## Todo
 
-- plug to mattermost of course
-- handle users (they should see only their documents)
+- ~~plug to mattermost of course~~
+- ~~handle users (they should see only their documents)~~
 - export env config (db name, collection name)
 - secure mongodb with auth
 - CI with build commands and dep installs
@@ -81,3 +81,8 @@ Just a small plugin to
 ## Useful
 
 - net/http/httputil to pretty dump requests
+
+
+## See in action
+
+![Alt Text](/demo_mtm3.gif)
